@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!-- D_Submasters1.xml -->
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+	<specVersion>
+		<major>1</major>
+		<minor>0</minor>
+	</specVersion>
+	<device>
+		<deviceType>urn:schemas-toggledbits-com:device:Submasters:1</deviceType>
+		<staticJson>D_Submasters1.json</staticJson>
+		<friendlyName>Submasters</friendlyName>
+		<manufacturer></manufacturer>
+		<manufacturerURL></manufacturerURL>
+		<modelDescription></modelDescription>
+		<modelName></modelName>
+		<handleChildren>0</handleChildren>
+		<Category_Num>1</Category_Num>
+		<Subcategory_Num>0</Subcategory_Num>
+		<serviceList>
+			<service>
+				<serviceType>urn:schemas-toggledbits-com:service:Submasters:1</serviceType>
+				<serviceId>urn:toggledbits-com:serviceId:Submasters1</serviceId>
+				<SCPDURL>S_Submasters1.xml</SCPDURL>
+			</service>
+		</serviceList>
+		<implementationList>
+			<implementationFile>I_Submasters1.xml</implementationFile>
+		</implementationList>
+	</device>
+</root>
