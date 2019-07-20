@@ -27,13 +27,15 @@ var Submasters = (function(api, $) {
 	var deviceType = "urn:schemas-toggledbits-com:device:Submasters:1";
 
 	var moduleReady = false;
+	var isOpenLuup = false;
+	// var isALTUI;
 	var roomsByName = [];
 	var iData = [];
 	var configModified = false;
 	var inStatusPanel = false;
 	var currentSub = 0;
-	var isOpenLuup = false;
-	// var isALTUI;
+	var fadeTimer = null;
+	var faderValue = 100;
 
 	var msgUnsavedChanges = "You have unsaved changes. Click OK to save them now, or cancel to discard them.";
 
@@ -50,14 +52,25 @@ var Submasters = (function(api, $) {
 	div.submastertab .ui-slider .ui-slider-handle { background: transparent url(http://192.168.0.164/~patrick/slider-handle.png) no-repeat scroll 100% 100%; width: 66px; height: 17px; border-style: none; } \
 	div.submastertab .ui-slider .ui-corner-all,.ui-widget-content { border-style: none; border-radius: 0; } \
 	div.submastertab .ui-slider a:active { border-style: none; text-decoration: none; } \
-	div.submastertab div.channelbutton { width: 70px; height: 60px; margin: 0; padding: 0; text-align: center; } \
-	div.submastertab div.channelbutton-label { border: 3px solid black; border-radius: 12px 12px 0px 0px; color: #000; width: 100%; height: 50%; display: block; background-color: #cff; } \
+	div.submastertab div.channelbutton { width: 80px; height: 80px; margin: 0; padding: 0; text-align: center; } \
+	div.submastertab div.channelbutton-label { border: 3px solid black; border-bottom: none; border-radius: 12px 12px 0px 0px; color: #000; width: 100%; height: 40%; display: block; background-color: #cff; } \
+	div.submastertab div.channelbutton-label.disabled { cursor: not-allowed; } \
 	div.submastertab div.channelbutton-label-slot { height: 100%; width: 1px; display: inline-block; vertical-align: middle; } \
 	div.submastertab div.channelbutton-label-text { font-size: 18px; font-weight: bold; font-family: OpenSansLight,Arial,sans-serif; line-height: 0.9em; display: inline-block; position: relative; vertical-align: middle; } \
-	div.submastertab div.channelbutton-base { border: 3px solid black; border-radius: 0px 0px 12px 12px; color: #000; width: 100%; height: 50%; display: block; } \
+	div.submastertab div.channelbutton-base { border: 3px solid black; border-radius: 0px 0px 12px 12px; color: #000; width: 100%; height: 60%; display: block; } \
+	div.submastertab div.channelbutton-base.disabled { cursor: not-allowed; } \
 	div.submastertab div.channelbutton-base-slot { height: 100%; width: 1px; display: inline-block; vertical-align: middle; } \
-	div.submastertab div.channelbutton-value-text { font-size: 12px; font-weight: bold; font-family: OpenSansLight,Arial,sans-serif; line-height: 0.9em; display: inline-block; position: relative; vertical-align: middle; } \
-	div.submastertab .channel { float: left !important; margin: 0 10px 14px 0 !important; } \
+	div.submastertab div.channelbutton-value-text { font-size: 14px; font-weight: bold; line-height: 1.15em; display: inline-block; position: relative; vertical-align: middle; } \
+	div.submastertab .channel { float: left !important; margin: 2px 3px 3px 2px !important; } \
+	div.submastertab div#value { width: 75px; text-align: center; font-family: monospace; font-size: 24px; font-weight: bold; } \
+	div.submastertab div#status { width: 100%; overflow: hidden; padding: 2px 8px; background-color: #000; color: rgb(0,224,0); font-family: monospace; font-size: 18px; font-weight: normal; } \
+	div.submastertab div#tbtabs { margin: 0; padding: 0; background-color: #eee; } \
+	div.submastertab div#tbtabs ul { margin: 0; padding: 8px 0 0 0; } \
+	div.submastertab div#tbtabs li { list-style: none; float: left; position: relative; top: 0px; border: none: none; padding: 4px 8px; border-radius: 8px 8px 0 0; text-align: center; background-color: rgb(246,246,246); } \
+	div.submastertab div#tbtabs li:hover { cursor: pointer; background-color: rgb(192,192,192); } \
+	div.submastertab div#tbtabs li:active { cursor: pointer; border-color: rgb(0,127,255); } \
+	div.submastertab div#tbtabs li.selected { background-color: rgb(0,127,255); color:white; } \
+	div.submastertab div#tbtabbody { background-color: #fff; padding: 8px; } \
 	div#tbcopyright { display: block; margin: 12px 0px; } \
 	div#tbbegging { display: block; color: #ff6600; margin-top: 12px; } \
 </style>');
@@ -118,9 +131,10 @@ var Submasters = (function(api, $) {
 
 			/* Make our own list of devices, sorted by room, and alpha within room. */
 			var devices = api.cloneObject( api.getListOfDevices() );
-			var rooms = [];
 			var noroom = { "id": 0, "name": "No Room", "devices": [] };
-			rooms[noroom.id] = noroom;
+			var rooms = [ noroom ];
+			var roomIx = {};
+			roomIx[String(noroom.id)] = noroom;
 			var dd = devices.sort( function( a, b ) {
 				if ( a.id == myid ) return -1;
 				if ( b.id == myid ) return 1;
@@ -132,18 +146,19 @@ var Submasters = (function(api, $) {
 			for (var i=0; i<dd.length; i+=1) {
 				var devobj = dd[i];
 				/* Detect openLuup while we're at it */
-				if ( "openLuup" === devobj.device_type && 0 === devobj.device_num_parent ) {
+				if ( "openLuup" === devobj.device_type ) {
 					isOpenLuup = true;
 				}
 
 				var roomid = devobj.room || 0;
-				var roomObj = rooms[roomid];
+				var roomObj = roomIx[String(roomid)];
 				if ( undefined === roomObj ) {
 					roomObj = api.cloneObject( api.getRoomObject(roomid) );
 					roomObj.devices = [];
-					rooms[roomid] = roomObj;
+					roomIx[String(roomid)] = roomObj;
+					rooms[rooms.length] = roomObj;
 				}
-				roomObj.devices.push( devobj.id );
+				roomObj.devices.push( devobj );
 			}
 			roomsByName = rooms.sort(
 				/* Special sort for room name -- sorts "No Room" last */
@@ -217,8 +232,6 @@ var Submasters = (function(api, $) {
  *
  ** **************************************************************************/
 
-	var fadeTimer = null;
-
 	function clearSelection() {
 		// https://stackoverflow.com/questions/3169786/clear-text-selection-with-javascript
 		if (window.getSelection) {
@@ -231,13 +244,34 @@ var Submasters = (function(api, $) {
 		  document.selection.empty();
 		}
 	}
-
-	function toggleFlash( $b ) {
-		var f = $b.channelbutton( "flash" );
-		$b.channelbutton( "flash", ! f );
+	
+	var messageTimer = null;
+	var msgs = [];
+	var lastMsg = 0;
+	function scrollMessage( lastMsg ) {
+		if (++lastMsg >= msgs.length ) lastMsg = 0;
+		$( '#tbtabbody #status' ).text( msgs[lastMsg] );
+		if ( msgs.length > 1 ) {
+			messageTimer = setTimeout( function() { scrollMessage( lastMsg ); }, 3000 );
+		} else {
+			messageTimer = null;
+		}
+	}
+	
+	function setMessages( ar ) {
+		if ( messageTimer ) {
+			clearTimeout( messageTimer );
+		}
+		if ( ar && ar.length ) {
+			msgs = ar;
+		} else {
+			msgs = [""];
+			$( '#tbtabbody #status' ).text( "" );
+		}
+		scrollMessage( 32767 );
 	}
 
-	function tickSlide() {
+	function applySlider() {
 		console.log("TICK");
 		var ui = $( 'div#tbtabbody #slider' );
 		var val = ui.slider("value");
@@ -249,6 +283,7 @@ var Submasters = (function(api, $) {
 				actionArguments: { newLoadlevelTarget: val },
 				onSuccess: function( xhr ) {
 					console.log("performActionOnDevice.onSuccess: " + String(xhr));
+					api.setDeviceStatePersistent( fader, serviceId, "Random", Math.random() );
 				},
 				onFailure: function( xhr ) {
 					//??? are there undocumented parameters here?
@@ -264,18 +299,22 @@ var Submasters = (function(api, $) {
 		}
 	}
 
-	function updateFaderValue( ui ) {
+	function handleSlider( ui ) {
 		var val = ui.slider("value");
-		$('#value').text( val );
+		$('#tbtabbody #value').text( val );
 		var cbs = $('.channel.selected');
 		if ( 0 === cbs.length ) {
 			/* No channels selected, treat as sub fader */
 			faderValue = val;
 		} else {
 			/* Channel(s) selected; assign fader value to channel */
+			var config = getConfiguration().subs[currentSub];
 			cbs.each( function() {
 				jQuery(this).channelbutton("option", "value", val );
-				// ??? configuration changes here
+				var ch = parseInt( $(this).attr( 'id' ).replace( 'channel', '' ) );
+
+				config.loads[ch-1].level = val;
+				configModified = true;
 			});
 		}
 	}
@@ -285,74 +324,182 @@ var Submasters = (function(api, $) {
 			return;
 		}
 		var pdev = api.getCpanelDeviceId();
-		var doUpdate = false;
 		var k;
 		if ( args.id == pdev ) {
-			for ( k=0; k<(args.states || []).length; ++k ) {
-				if ( args.states[k].service === serviceId &&
-						args.states[k].variable.match( /^(cdata|cstate|Tripped|Armed)$/ ) )
-				{
-					doUpdate = true;
-					break;
-					// console.log( args.states[k].service + '/' + args.states[k].variable + " updated!");
-				}
-			}
-			if ( doUpdate ) {
-				try {
-					updateStatus( pdev );
-				} catch (e) {
-					console.log( e );
-					console.log( e.stack );
-				}
-			}
+			// nada
 		} else {
-			/* Update channel values, if no channels are selected (edit mode) */
+			/* No changes if channels are selected (editing) */
 			if ( $('.channel.selected').length > 0 ) return;
-			var ch = $( '.channelbutton[data-smload="'+args.id+'"]' );
-			if ( ch.length ) {
+
+			/* Fader change? */
+			var $ff = $( '#tbtabbody #slider[data-fader="'+args.id+'"]' );
+			if ( $ff.length > 0 ) {
+				for ( k=0; k<(args.states || []).length; k++ ) {
+					if ( args.states[k].service == "urn:upnp-org:serviceId:Dimming1" &&
+							args.states[k].variable === "LoadLevelStatus" ) {
+						$ff.slider( "option", "value", args.states[k].value );
+						break;
+					}
+				}
+			}
+
+			/* Update channel values */
+			var $ch = $( '.channelbutton[data-smload="'+args.id+'"]' );
+			if ( $ch.length > 0 ) {
 				for ( k=0; k<(args.states || []).length; ++k ) {
 					if ( args.states[k].service === "urn:upnp-org:serviceId:Dimming1" &&
 							args.states[k].variable === "LoadLevelStatus" ) {
 						var val = args.states[k].value;
-						ch.each( function() {
-							var $el = $(this);
-							$el.channelbutton( "option", "value", val );
+						$ch.each( function() {
+							$(this).channelbutton( "option", "value", val );
 						});
+						break;
 					}
 				}
 			}
 		}
 	}
+	
+	function handleAssignDeviceClick( ev ) {
+		var $dp = $( '#tbtabbody div#dpanel' );
+		$dp.empty().addClass("form-inline");
+		var $mm = $( '<select>', { id: "devicemenu", class: "form-control form-control-sm" } );
+		for ( var k=0; k<roomsByName.length; ++k ) {
+			var $group = $( '<optgroup>', { id: roomsByName[k].id, label: roomsByName[k].name } )
+				.text( roomsByName[k].name )
+				.appendTo( $mm );
+			for ( var j=0; j<roomsByName[k].devices.length; ++j ) {
+				$( '<option/>' ).val( roomsByName[k].devices[j].id )
+				.text( roomsByName[k].devices[j].name )
+				.appendTo( $group );
+			}
+		}
+		$('<option>').val("").text("--choose device--").prependTo( $mm );
+		$mm.appendTo( $dp );
+		$('<button>', { id: "assigndevice", class: "btn btn-sm btn-primary" } ).text("Assign Device")
+			.on( 'click', function() { alert("TBD"); } )
+			.appendTo( $dp );
+		$dp.slideDown();
+	}
+
+	function inEdit() {
+		return $('#tbtabbody').hasClass( 'tbedit' );
+	}
+
+	function endEdit() {
+		if ( configModified ) {
+			var myid = api.getCpanelDeviceId();
+			var config = getConfiguration( myid );
+			config.serial = ( config.serial || 0 ) + 1;
+			config.timestamp = new Date().getTime() / 1000;
+			api.setDeviceStatePersistent( myid, serviceId, "Configuration",
+				JSON.stringify( config, function( k, v ) { return k.match( /^__/ ) ? undefined : v; } ),
+				{
+					'onSuccess' : function() {
+						configModified = false;
+						$( 'div#tbtabbody' ).removeClass( 'tbedit' );
+					},
+					'onFailure' : function() {
+						alert('There was a problem saving the modified configuration. Vera/Luup may be restarting. Please try again.');
+					}
+				}
+			);
+		}
+		return true;
+	}
+
+	/* Removes all selections and updates panel to show sub in current state and config */
+	function editSubmaster( subid ) {
+		var config = getConfiguration();
+		var sub = config.subs[subid];
+
+		$bd = $( 'div#tbtabbody' );
+		$sel = $('.channelbutton.selected', $bd);
+		if ( 1 === $sel.length ) {
+			/* First item to edit selected. Set slider to configured level of
+			   the selected channel. Set all other channels to their configured
+			   values */
+			$bd.addClass( 'tbedit' );
+			ch = parseInt( $sel.attr( 'id' ).replace( 'channel', '' ) );
+			$( '#slider', $bd ).slider( "option", "value", sub.loads[ch-1].level );
+			/* Set all channel buttons to their configured level */
+			for ( var l=0; l<(sub.loads || []).length; ++l ) {
+				var $cb = $( '#channel'+String(l+1), $bd );
+				$cb.channelbutton( "option", "value", sub.loads[l].level );
+				$( 'div.channelbutton-base', $cb ).attr( 'title', 'This is the programmed level of the device when the submaster fader is at 100%' );
+			}
+		} else if ( $sel.length > 0 ) {
+			/* Multiple item selection. Set all items to current value of fader. */
+			var n = $( '#slider', $bd ).slider( "option", "value" );
+			$sel.each( function() {
+				$(this).channelbutton( "option", "value", n );
+				$( 'div.channelbutton-base', $(this) ).attr( 'title', 'This is the programmed level of the device when the submaster fader is at 100%' );
+				var ch = parseInt( $(this).attr( 'id' ).replace( 'channel', '' ) );
+				if ( n !== sub.loads[ch-1].level ) {
+					/* If different from config, save and mark modified */
+					sub.loads[ch-1].level = n;
+					configModified = true;
+				}
+			});
+		}
+
+		setMessages( [
+			"Edit Mode -- slider sets highest level of selected channel (when fader at 100%)",
+			"Select multiple channels with shift-click",
+			"Click any selected channel to end editing and save changes",
+			"There is no 'Undo'..."
+			] );
+	}
 
 	/* Removes all selections and updates panel to show sub in current state and config */
 	function loadSubmaster( subid ) {
-		var config = getConfiguration();
-		config = config.subs[subid];
-
 		$bd = $( 'div#tbtabbody' );
 
-		var fv = api.getDeviceState( config.fader, "urn:upnp-org:serviceId:Dimming1", "LoadLevelStatus" ) || 0;
-		$( '#slider' ).slider( "value", fv );
+		if ( inEdit() ) {
+			/* Take us out of editing mode */
+			if ( ! endEdit() ) return;
+			$( '#slider', $bd ).slider( "option", "value", faderValue );
+			applySlider();
+		}
+
+		var config = getConfiguration();
+		var sub = config.subs[subid];
+
+		var fv = api.getDeviceState( sub.fader, "urn:upnp-org:serviceId:Dimming1", "LoadLevelStatus" ) || 0;
+		$( '#slider', $bd ).data( 'fader', sub.fader ).attr( 'data-fader', sub.fader ).slider( "value", fv );
 		for ( var l=1; l<=24; ++l ) {
 			var $cb = $( '#channel'+l, $bd);
 			$cb.removeClass( 'selected' );
-			if ( l <= ( config.loads || [] ).length ) {
-				var ld = config.loads[l-1];
+			if ( l <= ( sub.loads || [] ).length ) {
+				var ld = sub.loads[l-1];
 				var cv = api.getDeviceState( ld.device, "urn:upnp-org:serviceId:Dimming1", "LoadLevelStatus" ) || 0;
 				$cb.data( 'smload', String(ld.device) ).attr( 'data-smload', String(ld.device) );
 				$cb.channelbutton( "option", "label", String(l) );
 				$cb.channelbutton( "option", "value", cv );
-				$( 'div.channelbutton-label', $cb ).attr( 'title', '#' + ld.device + " (click to change)" );
+				var devobj = api.getDeviceObject( ld.device );
+				$( 'div.channelbutton-label', $cb ).attr( 'title', '#' +
+					ld.device + " " +
+					( devobj ? devobj.name : "(missing device)" ) +
+					" (click to change)" );
+				$( 'div.channelbutton-base', $cb ).attr( 'title', 'This is the current level of the device' ).removeClass('disabled');
 			} else {
 				$cb.removeData( 'smload' ).attr( 'data-smload', '' );
 				$cb.channelbutton( "option", "label", "" );
 				$cb.channelbutton( "option", "value", "" );
 				$( 'div.channelbutton-label', $cb ).attr( 'title', 'Click to assign device' );
+				$( 'div.channelbutton-base', $cb ).attr( 'title', 'No device assigned' ).addClass('disabled');
 			}
 		}
+
+		setMessages( [
+			"Mimic Mode -- slider controls submaster fader",
+			"Channel buttons show current intensity of each assigned load",
+			"Click a channel header to set/change assigned device",
+			"Click a channel intensity to change level"
+		] );
 	}
 
-	function doConfiguration()
+	function _doConfiguration()
 	{
 		console.log("doConfiguration()");
 
@@ -376,9 +523,12 @@ var Submasters = (function(api, $) {
 		api.setCpanelContent( html );
 
 		var $container = $( 'div.submastertab' );
+		var $th = jQuery( '<div/>', { id: "tbtabs" } ).appendTo( $container );
+		jQuery( '<div class="ui-helper-clearfix"/>' ).appendTo( $container );
+		
 		var $body = jQuery( '<div/>', { id: "tbtabbody" } );
 		$body.append( '\
-<div style="margin: 0 0; padding: 0 0; display: inline-block; vertical-align: top;"><img src="http://192.168.0.164/~patrick/slider-top.png"><div id="slider"></div><img src="http://192.168.0.164/~patrick/slider-bottom.png"><div id="value">0</div></div>\
+<div style="margin: 0 0; padding: 0 0; display: inline-block; vertical-align: top;"><img src="http://192.168.0.164/~patrick/slider-top.png"><div id="slider" data-fader=""></div><img src="http://192.168.0.164/~patrick/slider-bottom.png"><div id="value">0</div></div>\
 <div style="margin: 0 0; padding: 0 0; display: inline-block; vertical-align: top;">\
 	<div class="r">\
 		<div id="channel1" class="channel" data-smload=""></div>\
@@ -411,31 +561,37 @@ var Submasters = (function(api, $) {
 		<div id="channel24" class="channel" data-smload=""></div>\
 	</div>\
 </div>');
+		$body.append( '<div id="status"></div>' );
+		jQuery( '<div id="dpanel"/>' ).hide().appendTo( $body );
 
 		$( "#slider", $body ).slider({
 			orientation: "vertical",
 			min: 0,
 			max: 100,
-			value: 0, // ??? was faderValue
+			value: faderValue,
 			slide: function( event, ui ) {
-				$('#status').append(" slide");
 				if ( fadeTimer ) {
 					clearTimeout( fadeTimer );
 				}
-				fadeTimer = window.setTimeout( tickSlide, 1000 );
-				updateFaderValue($(this));
+				handleSlider($(this));
+				fadeTimer = window.setTimeout( applySlider, 500 );
 			},
-			start: function( event, ui ) { $('#status').append(" start"); },
-			stop: function( event, ui ) { $('#status').append(" stop"); },
-			change: function( event, ui ) { $('#status').append(" change"); updateFaderValue($(this)); }
+			start: function( event, ui ) {},
+			stop: function( event, ui ) {
+				if ( fadeTimer ) {
+					clearTimeout( fadeTimer );
+				}
+				handleSlider($(this));
+				applySlider();
+			},
+			change: function( event, ui ) { handleSlider($(this)); }
 		});
 
 		$( '.channel', $body ).channelbutton({
 			baseColor: '#fff',
-			click: function( event, ui ) { $('#status').append( " button.click" ); },
-			clickLabel: function( event, ui ) { $('#status').append( " button.clickLabel" ); toggleFlash( ui ); },
+			click: function( event, ui ) {},
+			clickLabel: handleAssignDeviceClick,
 			clickBase: function( event, ui ) {
-				$('#status').append( " button.clickBase" );
 				ui.channelbutton("option","label", ui.attr('id').replace('channel',''));
 				if ( ! event.shiftKey ) {
 					$('.channel').not('#'+idSelector(ui.attr('id'))).removeClass( "selected" ).channelbutton("option", "baseColor", "#fff");
@@ -445,22 +601,46 @@ var Submasters = (function(api, $) {
 				} else {
 					ui.addClass( "selected" ).channelbutton("option","baseColor",'#0f8');
 				}
-				clearSelection();
-				var sel = $('.channelbutton.selected');
-				if ( sel.length == 1 ) {
-					$('#slider').slider("value", sel.channelbutton("option", "value"));
-				} else if ( sel.length == 0 ) {
+				clearSelection(); /* text selection creates UI grunge */
+				var $sel = $('.channelbutton.selected');
+				if ( $sel.length > 0 ) {
+					editSubmaster( currentSub );
+				} else {
 					loadSubmaster( currentSub );
 				}
-				$('#slider a').focus();
+				$('#tbtabbody #slider a').focus();
 			}
 		});
 
 		$container.append( $body );
+		
+		var config = getConfiguration();
+		$th.append( '<ul/>' );
+		for ( var k=0; k<(config.subs || []).length; k++ ) {
+			var $tab = jQuery( '<li/>', { id: k, class: "tbtab" } );
+			$tab.text( config.subs[k].id );
+			$tab.on( 'click', function( event, ui ) {
+				var $el = $(event.target);
+				$(this).siblings().removeClass( 'selected' );
+				$(this).addClass( 'selected' );
+				loadSubmaster( parseInt( $(this).attr('id') ) );
+			});
+			$( 'ul', $th ).append( $tab );
+		}
+		$( '#tbtabs ul li#' + idSelector( currentSub ) ).click();
 
 		loadSubmaster( currentSub );
 
 		api.registerEventHandler('on_ui_deviceStatusChanged', Submasters, 'onUIDeviceStatusChanged');
+	}
+
+	function doConfiguration() {
+		try {
+			_doConfiguration();
+		} catch( e ) {
+			if ( console && console.trace ) console.trace();
+			debugger;
+		}
 	}
 
 

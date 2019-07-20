@@ -135,9 +135,13 @@ local function updateSubmaster( subID, pdev )
 end
 
 -- This example function will be called when our watched state variable changes.
-local function faderChanged( dev, sid, var, oldVal, newVal, pdev, sub )
-	D("faderChanged(%1,%2,%3,%4,%5,%6,%7)", dev, sid, var, oldVal, newVal, pdev, sub)
-	updateSubmaster( sub, pdev )
+local function faderChanged( dev, sid, var, oldVal, newVal, pdev )
+	D("faderChanged(%1,%2,%3,%4,%5,%6)", dev, sid, var, oldVal, newVal, pdev)
+	for sub,d in pairs( Subs ) do
+		if d.fader == dev then
+			pcall( updateSubmaster, sub, pdev )
+		end
+	end
 end
 
 local function loadChanged( dev, sid, var, oldVal, newVal, pdev )
@@ -154,6 +158,52 @@ local function loadChanged( dev, sid, var, oldVal, newVal, pdev )
 			PFB.delay.once( { id="update", seconds=1 }, updateStatus, pdev )
 		end
 	end
+end
+
+local function reloadSubmasters( pdev )
+	D("reloadSubmasters(%1)", pdev)
+	Subs = {}
+	Loads = {}
+
+	-- Make sure we're Enabled...
+	if PFB.var.getNumeric( "Enabled", 1 ) == 0 then
+		PFB.log( PFB.LOGLEVEL.notice, "Disabled by configuration." )
+		PFB.var.set( "Message", "Disabled" )
+		return true, "Disabled"
+	end
+
+	-- Load master config and set up internal structures.
+	local s = PFB.var.get( "Configuration" ) or "{}"
+	local cf = json.decode( s )
+	if cf == nil then
+		PFB.log( PFB.LOGLEVEL.err, "Invalid configuration." )
+		PFB.var.set( "Message", "Invalid configuration" )
+		return false, "Invalid configuration"
+	end
+	for _,sub in ipairs( cf.subs or {} ) do
+		-- Watch our fader
+		Subs[sub.id] = { id=sub.id, fader=sub.fader, loads={} }
+		PFB.watch.set( sub.fader, "urn:upnp-org:serviceId:SwitchPower1", "Status", faderChanged )
+		PFB.watch.set( sub.fader, "urn:upnp-org:serviceId:Dimming1", "LoadLevelStatus", faderChanged )
+		PFB.watch.set( sub.fader, MYSID, "Random", faderChanged )
+		for _,load in ipairs( sub.loads or {} ) do
+			local ds = tostring(load.device)
+			Subs[sub.id].loads[ds] = { device=load.device, level=load.level }
+			if not Loads[ds] then
+				Loads[ds] = { device=load.device, subs={ sub.id }, lastsub=nil }
+			else
+				table.insert( Loads[ds].subs, sub.id )
+			end
+			PFB.watch.set( load.device, "urn:upnp-org:serviceId:SwitchPower1", "Status", loadChanged )
+			PFB.watch.set( load.device, "urn:upnp-org:serviceId:Dimming1", "LoadLevelStatus", loadChanged )
+		end
+	end
+	return true, "OK"
+end
+
+local function configChanged( dev, sid, var, oldVal, newVal, pdev )
+	D("configChanged(%1,%2,%3,%4b,%5b,%6)", dev, sid, var, #oldVal, #newVal, pdev)
+	reloadSubmasters( pdev )
 end
 
 function childRunOnce( child, pdev ) end
@@ -193,6 +243,7 @@ PFB.loglevel = PFB.LOGLEVEL.DEBUG2
 	PFB.var.init( "Enabled", "1" )
 	PFB.var.init( "Configuration", "{}" )
 	PFB.var.init( "Status", "{}" )
+	PFB.var.init( "Random", "0" )
 	Subs = {}
 	Loads = {}
 
@@ -204,29 +255,10 @@ PFB.loglevel = PFB.LOGLEVEL.DEBUG2
 	end
 
 	-- Load master config and set up internal structures.
-	local s = PFB.var.get( "Configuration" ) or "{}"
-	local cf = json.decode( s )
-	if cf == nil then
-		PFB.var.set( "Message", "Invalid configuration" )
-		return false, "Invalid configuration"
-	end
-	for _,sub in ipairs( cf.subs or {} ) do
-		-- Watch our fader
-		Subs[sub.id] = { id=sub.id, fader=sub.fader, loads={} }
-		PFB.watch.set( sub.fader, "urn:upnp-org:serviceId:SwitchPower1", "Status", faderChanged, sub.id )
-		PFB.watch.set( sub.fader, "urn:upnp-org:serviceId:Dimming1", "LoadLevelStatus", faderChanged, sub.id )
-		for _,load in ipairs( sub.loads or {} ) do
-			local ds = tostring(load.device)
-			Subs[sub.id].loads[ds] = { device=load.device, level=load.level }
-			if not Loads[ds] then
-				Loads[ds] = { device=load.device, subs={ sub.id }, lastsub=nil }
-			else
-				table.insert( Loads[ds].subs, sub.id )
-			end
-			PFB.watch.set( load.device, "urn:upnp-org:serviceId:SwitchPower1", "Status", loadChanged, sub.id )
-			PFB.watch.set( load.device, "urn:upnp-org:serviceId:Dimming1", "LoadLevelStatus", loadChanged, sub.id )
-		end
-	end
+	reloadSubmasters( pdev )
+	
+	-- Watch for configuration changes
+	PFB.watch.set( pdev, MYSID, "Configuration", configChanged )
 
 	L("Startup complete/successful!")
 	PFB.var.set( "Message", "" )
