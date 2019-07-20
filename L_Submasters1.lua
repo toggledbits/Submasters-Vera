@@ -62,14 +62,18 @@ local function updateStatus( pdev )
 end
 
 -- Update a submaster
-local function updateSubmaster( subID, pdev )
-	D("updateSubmaster(%1,%2)", subID, pdev)
-	local sub = Subs[subID]
+local function updateSubmaster( subIndex, pdev )
+	D("updateSubmaster(%1,%2)", subIndex, pdev)
+	local sub = Subs[subIndex]
 	if sub == nil then return end
-	if luup.devices[ sub.fader or -1 ] == nil then
-		PFB.log('err', "Submaster %1 fader device #%2 no longer exists!", sub.id, sub.fader)
+	if "" == (sub.fader or "" ) then
+		PFB.log('err', "Submaster %1:%2 fader not assigned!", sub.index, sub.id, sub.fader)
+		return
+	elseif luup.devices[ sub.fader ] == nil then
+		PFB.log('err', "Submaster %1:%2 fader device #%3 no longer exists!", sub.index, sub.id, sub.fader)
 		return
 	end
+	
 	-- Get current status of this sub's fader
 	local st = PFB.var.getNumeric( "Status", 0, sub.fader, "urn:upnp-org:serviceId:SwitchPower1" )
 	if st ~= 0 then
@@ -77,11 +81,12 @@ local function updateSubmaster( subID, pdev )
 	end
 	sub.level = st
 	sub.since = os.time()
+	PFB.log( "info", "Submaster %1 fader %2 level change to %2%", sub.id, luup.devices[ sub.fader ].description, st )
 	if Priority ~= "HTP" then -- LTP is the default
 		-- LTP: last takes precedence
 		for _,load in pairs( sub.loads or {} ) do
 			-- Mark last sub to touch this load.
-			Loads[tostring(load.device)].precsub = sub.id
+			Loads[tostring(load.device)].precsub = sub.index
 
 			-- Target level for this load in this sub. If muted or a solo is set
 			-- and we're not it, force target to 0.
@@ -92,7 +97,7 @@ local function updateSubmaster( subID, pdev )
 
 			-- Set load
 			if luup.devices[ load.device or -1 ] == nil then
-				PFB.log('warn', "Submaster %1 load device #%2 no longer exists!", sub.id, load.device)
+				PFB.log('warn', "Submaster %1:%2 load device #%3 no longer exists!", sub.index, sub.id, load.device)
 			else
 				if st == 0 then
 					luup.call_action( "urn:upnp-org:serviceId:SwitchPower1", "SetTarget", { newTargetValue="0" }, load.device )
@@ -107,26 +112,26 @@ local function updateSubmaster( subID, pdev )
 		-- HTP: highest takes precedence
 		for _,load in pairs( sub.loads or {} ) do
 			if luup.devices[ load.device or -1 ] == nil then
-				PFB.log('warn', "Submaster %1 load device #%2 no longer exists!", sub.id, load.device)
+				PFB.log('warn', "Submaster %1:%2 load device #%3 no longer exists!", sub.index, sub.id, load.device)
 			elseif not load.mute and ( sub.solo == nil or sub.solo == load.device ) then
 				local ld = Loads[tostring(load.device)]
 
 				-- Iterate over all subs that control this load; find max.
 				local tmax = 0
 				local smax = nil
-				for _,sc in pairs( ld.subs or {} ) do
+				for _,ix in pairs( ld.subs or {} ) do
 					-- Target level for this load in this sub
-					local tl = math.floor( ( Subs[sc].loads[tostring(load.device)].level or 100 ) * ( Subs[sc].level or 0 ) / 100 )
-					D("updateSubmaster() HTP mode: target for #%3 in sub %1 is %2%%", sc.id, tl, load.device)
+					local tl = math.floor( ( Subs[ix].loads[tostring(load.device)].level or 100 ) * ( Subs[ix].level or 0 ) / 100 )
+					D("updateSubmaster() HTP mode: target for #%1 in sub %2:%3 is %4%%", load.device, ix, Subs[ix].id, tl)
 					if smax == nil or tl > tmax then
-						smax = sc.id
+						smax = ix
 						tmax = tl
 					end
 				end
 
 				ld.precsub = smax
 				ld.preclevel = tmax
-				D("updateSubmaster() HTP mode: highest for #%3 is sub %1 at %2%%", smax, tmax, load.device)
+				D("updateSubmaster() HTP mode: highest for #%3 is sub %1:%2 at %3%%", smax, Subs[smax].id, tmax, load.device)
 				luup.call_action( "urn:upnp-org:serviceId:Dimming1", "SetLoadLevelTarget", { newLoadlevelTarget=tostring(tmax) }, load.device )
 			end
 		end
@@ -137,25 +142,29 @@ end
 -- This example function will be called when our watched state variable changes.
 local function faderChanged( dev, sid, var, oldVal, newVal, pdev )
 	D("faderChanged(%1,%2,%3,%4,%5,%6)", dev, sid, var, oldVal, newVal, pdev)
-	for sub,d in pairs( Subs ) do
-		if d.fader == dev then
-			pcall( updateSubmaster, sub, pdev )
+	if PFB.var.getNumeric( "Enabled", 1 ) ~= 0 then
+		for sub,d in pairs( Subs ) do
+			if d.fader == dev then
+				pcall( updateSubmaster, sub, pdev )
+			end
 		end
 	end
 end
 
 local function loadChanged( dev, sid, var, oldVal, newVal, pdev )
 	D("loadChanged(%1,%2,%3,%4,%5,%6)", dev, sid, var, oldVal, newVal, pdev)
-	if Loads[tostring(dev)] then
-		local st
-		if sid == "urn:upnp-org:serviceId:SwitchPower1" and var == "Status" then
-			st = newVal == "0" and 0 or 1
-		elseif sid == "urn:upnp-org:serviceId:Dimming1" and var == "LoadLevelStatus" then
-			st = tonumber( newVal ) or 0
-		end
-		if st then
-			Loads[tostring(dev)].level = st
-			PFB.delay.once( { id="update", seconds=1 }, updateStatus, pdev )
+	if PFB.var.getNumeric( "Enabled", 1 ) ~= 0 then
+		if Loads[tostring(dev)] then
+			local st
+			if sid == "urn:upnp-org:serviceId:SwitchPower1" and var == "Status" then
+				st = newVal == "0" and 0 or 1
+			elseif sid == "urn:upnp-org:serviceId:Dimming1" and var == "LoadLevelStatus" then
+				st = tonumber( newVal ) or 0
+			end
+			if st then
+				Loads[tostring(dev)].level = st
+				PFB.delay.once( { id="update", seconds=1 }, updateStatus, pdev )
+			end
 		end
 	end
 end
@@ -172,6 +181,13 @@ local function reloadSubmasters( pdev )
 		return true, "Disabled"
 	end
 
+	local dm = PFB.var.getNumeric( "DebugMode", 0 )
+	if dm ~= 0 then
+		PFB.loglevel = ( dm > 1 ) and dm or PFB.LOGLEVEL.DEBUG2
+	else
+		PDB.loglevel = PFB.LOGLEVEL.INFO
+	end
+
 	-- Load master config and set up internal structures.
 	local s = PFB.var.get( "Configuration" ) or "{}"
 	local cf = json.decode( s )
@@ -180,19 +196,22 @@ local function reloadSubmasters( pdev )
 		PFB.var.set( "Message", "Invalid configuration" )
 		return false, "Invalid configuration"
 	end
-	for _,sub in ipairs( cf.subs or {} ) do
+	for n,sub in ipairs( cf.subs or {} ) do
 		-- Watch our fader
-		Subs[sub.id] = { id=sub.id, fader=sub.fader, loads={} }
-		PFB.watch.set( sub.fader, "urn:upnp-org:serviceId:SwitchPower1", "Status", faderChanged )
-		PFB.watch.set( sub.fader, "urn:upnp-org:serviceId:Dimming1", "LoadLevelStatus", faderChanged )
-		PFB.watch.set( sub.fader, MYSID, "Random", faderChanged )
+		local fdev = sub.fader or ""
+		Subs[n] = { index=n, id=sub.id, fader=fdev, loads={} }
+		if "" ~= fdev then
+			PFB.watch.set( sub.fader, "urn:upnp-org:serviceId:SwitchPower1", "Status", faderChanged )
+			PFB.watch.set( sub.fader, "urn:upnp-org:serviceId:Dimming1", "LoadLevelStatus", faderChanged )
+			PFB.watch.set( sub.fader, MYSID, "Random", faderChanged )
+		end
 		for _,load in ipairs( sub.loads or {} ) do
 			local ds = tostring(load.device)
-			Subs[sub.id].loads[ds] = { device=load.device, level=load.level }
+			Subs[n].loads[ds] = { device=load.device, level=load.level }
 			if not Loads[ds] then
-				Loads[ds] = { device=load.device, subs={ sub.id }, lastsub=nil }
+				Loads[ds] = { device=load.device, subs={ n }, lastsub=nil }
 			else
-				table.insert( Loads[ds].subs, sub.id )
+				table.insert( Loads[ds].subs, n )
 			end
 			PFB.watch.set( load.device, "urn:upnp-org:serviceId:SwitchPower1", "Status", loadChanged )
 			PFB.watch.set( load.device, "urn:upnp-org:serviceId:Dimming1", "LoadLevelStatus", loadChanged )
@@ -233,7 +252,6 @@ end
 
 -- Do local initialization of plugin instance data and get things rolling.
 function start( pdev )
-PFB.loglevel = PFB.LOGLEVEL.DEBUG2
 	D("start(%1)", pdev)
 
 
@@ -249,7 +267,7 @@ PFB.loglevel = PFB.LOGLEVEL.DEBUG2
 
 	-- Example: Make sure we're Enabled...
 	if PFB.var.getNumeric( "Enabled", 1 ) == 0 then
-		PFB.log( PFB.LOGLEVEL.err, "Disabled by configuration; aborting startup." )
+		PFB.log( PFB.LOGLEVEL.notice, "Disabled by configuration; aborting startup." )
 		PFB.var.set( "Message", "Disabled" )
 		return true, "Disabled"
 	end
