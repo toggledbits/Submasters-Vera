@@ -81,7 +81,7 @@ local function updateSubmaster( subIndex, pdev )
 	end
 	sub.level = st
 	sub.since = os.time()
-	PFB.log( "info", "Submaster %1 fader %2 level change to %2%", sub.id, luup.devices[ sub.fader ].description, st )
+	PFB.log( "info", "Submaster %1 fader %2 level change to %3%", sub.id, luup.devices[ sub.fader ].description, st )
 	if Priority ~= "HTP" then -- LTP is the default
 		-- LTP: last takes precedence
 		for _,load in pairs( sub.loads or {} ) do
@@ -185,7 +185,7 @@ local function reloadSubmasters( pdev )
 	if dm ~= 0 then
 		PFB.loglevel = ( dm > 1 ) and dm or PFB.LOGLEVEL.DEBUG2
 	else
-		PDB.loglevel = PFB.LOGLEVEL.INFO
+		PFB.loglevel = PFB.LOGLEVEL.INFO
 	end
 
 	-- Load master config and set up internal structures.

@@ -11,6 +11,10 @@
 			"Position": "0",
 			"TabType": "flash",
 			"TopNavigationTab": 1,
+			"AfterInit": {
+				"ScriptName": "J_Submasters.js",
+				"Function": "Submasters.doStatus"
+			},
 			"ControlGroup": [{
 				"id": "1",
 				"scenegroup": "1"
