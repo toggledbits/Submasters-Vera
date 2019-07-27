@@ -49,15 +49,15 @@ var Submasters = (function(api, $) {
 		var $head = $( 'head' );
 		/* Load material design icons */
 		$head.append('<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">');
-		//$head.append( '<script src="http://192.168.0.164/~patrick/toggledbits-channelbutton.js"></script>' );
+		//$head.append( '<script src="http://www.toggledbits.com/assets/submasters/toggledbits-channelbutton.js"></script>' );
 		$head.append( '\
 <style>\
 	div.tbsubmasters {} \
 	div.tbsubmasters div.submastertab {} \
 	div.tbsubmasters .sliderblock { margin: 0 0; padding: 0 0; display: inline-block; vertical-align: top; } \
 	div.tbsubmasters .subslider { margin: 0px 0px; padding: 0px 0px; } \
-	div.tbsubmasters .ui-slider { background-image: url(http://192.168.0.164/~patrick/slider-body.png); width: 75px; height: 180px; } \
-	div.tbsubmasters .ui-slider .ui-slider-handle { background: transparent url(http://192.168.0.164/~patrick/slider-handle.png) no-repeat scroll 100% 100%; width: 66px; height: 17px; border-style: none; } \
+	div.tbsubmasters .ui-slider { background-image: url(http://www.toggledbits.com/assets/submasters/slider-body.png); width: 75px; height: 180px; } \
+	div.tbsubmasters .ui-slider .ui-slider-handle { background: transparent url(http://www.toggledbits.com/assets/submasters/slider-handle.png) no-repeat scroll 100% 100%; width: 66px; height: 17px; border-style: none; } \
 	div.tbsubmasters .ui-slider .ui-corner-all,.ui-widget-content { border-style: none; border-radius: 0; } \
 	div.tbsubmasters .ui-slider a:active { border-style: none; text-decoration: none; } \
 	div.tbsubmasters div.sliderblock #value { width: 75px; text-align: center; font-family: monospace; font-size: 24px; font-weight: bold; } \
@@ -477,9 +477,9 @@ var Submasters = (function(api, $) {
 			var $d = $( '\
 <div class="sliderblock" style="margin: 0 0; padding: 0 0; display: inline-block; vertical-align: top;">\
 	<div id="name">???</div>\
-	<img src="http://192.168.0.164/~patrick/slider-top.png">\
+	<img src="http://www.toggledbits.com/assets/submasters/slider-top.png">\
 	<div id="' + k + '" class="subslider" data-fader=""></div>\
-	<img src="http://192.168.0.164/~patrick/slider-bottom.png">\
+	<img src="http://www.toggledbits.com/assets/submasters/slider-bottom.png">\
 	<div id="value">100</div>\
 </div>')
 				.appendTo( $el );
@@ -1066,7 +1066,7 @@ var Submasters = (function(api, $) {
 		jQuery( '<div/>', { id: "tbsminfo" } ).appendTo( $body );
 
 		$body.append( '\
-<div class="sliderblock"><img src="http://192.168.0.164/~patrick/slider-top.png"><div class="subslider" data-fader=""></div><img src="http://192.168.0.164/~patrick/slider-bottom.png"><div id="value">0</div></div>\
+<div class="sliderblock"><img src="http://www.toggledbits.com/assets/submasters/slider-top.png"><div class="subslider" data-fader=""></div><img src="http://www.toggledbits.com/assets/submasters/slider-bottom.png"><div id="value">0</div></div>\
 <div style="margin: 0 0; padding: 0 0; display: inline-block; vertical-align: top;">\
 	<div class="r">\
 		<div id="channel1" class="channel" data-smload=""></div>\
