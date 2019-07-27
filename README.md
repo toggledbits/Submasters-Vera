@@ -3,9 +3,9 @@ A plugin for Vera Home Automation Controllers to implement submasters for dimmin
 
 Don't know what submasters are? Well, in its basic form, it's a dimmer that controls other dimmers. So, for example, you can have a room full of lights, each with its own dimmer, controlled by a separate dimmer (which can be a real dimmer or a virtual device).
 
-The term "submasters" comes from the stage lighting world, where this structure of coordinating lights is very common. Here's one of the videos that served as an inspiration for this plugin: https://www.youtube.com/watch?v=d4qptPxR9xI
+The term "submasters" comes from the stage lighting world, where this structure of coordinating lights is very common. Here's one of the videos that served as an inspiration for this plugin: https://www.youtube.com/watch?v=d4qptPxR9xI . I would also like to thank @HSD99 of the Vera Community Forums for his considerable knowledge and encouragement in making this plugin a reality.
 
-The key that makes submasters really useful is that each controlled light can be assigned a different maximum level, and the actual level set for the light is between 0% and the maximum level in proportion to the 0-100% range of the controlling dimmer (the "fader"). So if two devices are assigned maximum levels of 80% and 50%, then when the controlling fader is at 100%, the devices will be at those 80% and 50% levels, respectively. But when the controlling fader is lowered to 50%, the controlled lights will be set to 40% (50% of 80%) and 25% (50% of 50%), respectively.
+The key that makes submasters really useful is that each controlled lights can be assigned a different maximum level, and the actual level set for the light is between 0% and the maximum level in proportion to the 0-100% range of the controlling dimmer (the "fader"). For example, if two devices are assigned maximum levels of 80% and 50%, then when the controlling fader is at 100%, the devices will be at those maximum 80% and 50% levels, respectively. But when the controlling fader is lowered to 50%, the controlled lights will be set to 40% (50% of 80%) and 25% (50% of 50%), respectively.
 
 ## Installing
 
