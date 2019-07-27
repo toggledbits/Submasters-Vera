@@ -16,9 +16,9 @@ Right now, this plugin is still in development and has not been released to the 
 3. Open the Vera upload tool at *Apps > Develop apps > Luup files*
 3. Select all of the unzipped files except README.md and CHANGELOG.md and drag them to the "Upload" area (drag them all together as a group).
 4. After the upload and reload of Luup complete, go to *Apps > Develop apps > Create device* and copy-paste the following into the named fields. Leave the remaining fields blank. Then click the "Create device" button. 
-  * Description: `Submasters`
-  * UPnP Device Filename: `D_Submasters1.xml`
-  * UPnP Implementation Filename: `I_Submasters1.xml`
+   * Description: `Submasters`
+   * UPnP Device Filename: `D_Submasters1.xml`
+   * UPnP Implementation Filename: `I_Submasters1.xml`
 6. Wait a moment, then reload Luup by going to *Apps > Develop apps > Test Luup code*, entering and running: `luup.reload()`
 7. As Luup reloads, do a [hard refresh of your browser](). This is a vital step!
 
