@@ -25,6 +25,9 @@ var Submasters = (function(api, $) {
 
 	var serviceId = "urn:toggledbits-com:serviceId:Submasters1";
 	var deviceType = "urn:schemas-toggledbits-com:device:Submasters:1";
+	
+	var DIMMERSID = "urn:upnp-org:serviceId:Dimming1";
+	var SWITCHSID = "urn:upnp-org:serviceId:SwitchPower1";
 
 	var moduleReady = false;
 	var isOpenLuup = false;
@@ -61,6 +64,11 @@ var Submasters = (function(api, $) {
 	div.tbsubmasters div#name { width: 100%; overflow: hidden; padding: 2px 2px; background-color: #000; color: rgb(0,224,0); font-size: 14px; font-weight: normal; text-align: center; } \
 	div.tbsubmasters div#status { width: 100%; overflow: hidden; padding: 2px 8px; background-color: #000; color: rgb(0,224,0); font-family: monospace; font-size: 18px; font-weight: normal; } \
 	div.tbsubmasters div.substatus {} \
+	div.substatus #tbchannellist { background-color: rgb(0,32,96); color: white; overflow-y: auto; overflow-x: hidden; max-height: 224px; } \
+	div.substatus #tbchannellist .row { margin: 0px 0px; padding: 0px 0px; } \
+	div.substatus #tbchannellist .row div { border: 2px solid rgb(0,24,64); padding: 2px 2px; } \
+	div.substatus #tbchannellist .tbcenter { text-align: center; } \
+	div.substatus #tbchannellist .tbheadrow { font-weight: bold; text-align: center } \
 	div.tbsubmasters i.material-icons.md16 { font-size: 16px; vertical-align: middle; margin-left: 4px; } \
 	div.submastertab div.channelbutton { width: 80px; height: 80px; margin: 0; padding: 0; text-align: center; } \
 	div.submastertab div.channelbutton-label { border: 3px solid black; border-bottom: none; border-radius: 12px 12px 0px 0px; color: #000; width: 100%; height: 40%; display: block; background-color: #cff; } \
@@ -280,13 +288,18 @@ var Submasters = (function(api, $) {
 			}
 			d.config.subs = d.config.subs || [];
 			d.loads = [];
+			d.loadIndex = {};
 			for ( var ix=0; ix<d.config.subs.length; ix++ ) {
 				d.config.subs[ix].__index = ix;
 				for ( var il=0; il<(d.config.subs[ix].loads || []).length; il++ ) {
 					var load = d.config.subs[ix].loads[il];
-					var devobj = api.getDeviceObject( load.device );
-					d.loads[d.loads.length] = { device: load.device, limit: load.value,
-						name: devobj ? devobj.name : ("Missing #"+load.device) };
+					if ( !d.loadIndex[String(load.device)] ) {
+						var devobj = api.getDeviceObject( load.device );
+						var lob = { device: load.device, limit: load.value,
+							name: devobj ? devobj.name : ("Missing #"+load.device) };
+						d.loads[d.loads.length] = lob;
+						d.loadIndex[String(load.device)] = true;
+					}
 				}
 			}
 			d.loads = d.loads.sort( function( a, b ) {
@@ -353,28 +366,49 @@ var Submasters = (function(api, $) {
 			return;
 		}
 		var pdev = api.getCpanelDeviceId();
-		var k;
+		var k, val;
 		if ( args.id == pdev ) {
-			// nada
+			for ( k=0; k<(args.states || []).length; k++ ) {
+				if ( args.states[k].service == serviceId && args.states[k].variable == "Status" ) {
+					val = args.states[k].value;
+					try {
+						val = JSON.parse( val );
+					} catch (e) {
+						console.log("Can't parse Status content: " + String(e));
+						console.log(e);
+						val = false;
+					}
+					if ( val ) {
+						var cf = getConfiguration( pdev );
+						for ( var l in (val.loads || {}) ) {
+							if ( val.loads.hasOwnProperty(l) ) {
+								$( '#tbchannellist div#' + idSelector( l ) + ".tbdevrow" ).each( function() {
+									var p = val.loads[l].precsub;
+									$( 'div#sub', $(this) ).text( cf.subs[p-1].id || p || "?" );
+								});
+							}
+						}
+					}
+					break;
+				}
+			}
 		} else {
-			/* No changes if channels are selected (editing) */
+			/* No changes if channels are selected (editing in Config tab) */
 			if ( $('.channel.selected').length > 0 ) return;
 
 			for ( k=0; k<(args.states || []).length; k++ ) {
 				if ( args.states[k].service == "urn:upnp-org:serviceId:Dimming1" &&
 						args.states[k].variable === "LoadLevelStatus" ) {
-					var val = args.states[k].value;
+					val = args.states[k].value;
 					/* Fader? */
 					var $ff = $( '.tbsubmasters .subslider[data-fader="'+args.id+'"]' );
 					$ff.slider( "option", "value", val );
 					/* Channel Button? */
-					var $ch = $( '.channelbutton[data-smload="'+args.id+'"]' );
-					$ch.each( function() {
+					$( '.channelbutton[data-smload="'+args.id+'"]' ).each( function() {
 						$(this).channelbutton( "option", "value", val );
 					});
 					/* Channel list row (status)? */
-					$ch = $( '#tbchannellist div#' + idSelector( args.id ) + '.tbdevrow' );
-					$ch.each( function() {
+					$( '#tbchannellist div#' + idSelector( args.id ) + '.tbdevrow' ).each( function() {
 						$( 'div#lvl', $(this) ).text( val );
 					});
 					break;
@@ -417,15 +451,21 @@ var Submasters = (function(api, $) {
 		var $container = $( 'div.tbsubmasters.substatus' );
 
 		var $el = $( '<div/>', { id: 'tbchannellist' } ).appendTo( $container );
+		var $row = $('<div/>', { class: "tbheadrow row" } ).appendTo( $el );
+		$( '<div class="col-xs-1 col-sm-1"/>' ).text( "Dev#" ).appendTo( $row );
+		$( '<div class="col-xs-4 col-sm-4"/>' ).text( "Device Name" ).appendTo( $row );
+		$( '<div class="col-xs-1 col-sm-1"/>' ).text( "Level" ).appendTo( $row );
+		$( '<div class="col-xs-3 col-sm-3"/>' ).text( "Last Sub" ).appendTo( $row );
+		$( '<div class="col-xs-3 col-sm-3"/>' ).text( "-" ).appendTo( $row );
 		for ( var il=0; il<dd.loads.length; ++il ) {
 			var load = dd.loads[il];
-			var $row = $('<div/>', { id: load.device, class: "tbdevrow row" } )
+			$row = $('<div/>', { id: load.device, class: "tbdevrow row" } )
 				.appendTo( $el );
-			$('<div class="col-xs-1 col-sm-1"/>').text( load.device ).appendTo( $row );
-			$('<div class="col-xs-5 col-sm-5"/>').text( load.name ).appendTo( $row );
-			$('<div id="lvl" class="col-xs-2 col-sm-2"/>').text( 'lvl' ).appendTo( $row );
-			$('<div id="sub" class="col-xs-2 col-sm-2"/>').text( 'sub' ).appendTo( $row );
-			$('<div id="qqq" class="col-xs-2 col-sm-2"/>').text( '???' ).appendTo( $row );
+			$('<div class="col-xs-1 col-sm-1 tbcenter"/>').text( load.device ).appendTo( $row );
+			$('<div class="col-xs-4 col-sm-4"/>').text( load.name ).appendTo( $row );
+			$('<div id="lvl" class="col-xs-1 col-sm-1 tbcenter"/>').text( 'lvl' ).appendTo( $row );
+			$('<div id="sub" class="col-xs-3 col-sm-3 tbcenter"/>').text( 'sub' ).appendTo( $row );
+			$('<div id="qqq" class="col-xs-3 col-sm-3 tbcenter"/>').text( "-" ).appendTo( $row );
 		}
 
 		$el = $( '<div/>', { id: 'tbsublist' } ).appendTo( $container );
@@ -433,6 +473,7 @@ var Submasters = (function(api, $) {
 
 		for ( var k=0; k<(cf.subs || []).length; k++ ) {
 			var sub = cf.subs[k];
+			if ( "" === ( sub.fader || "" ) ) continue;
 			var $d = $( '\
 <div class="sliderblock" style="margin: 0 0; padding: 0 0; display: inline-block; vertical-align: top;">\
 	<div id="name">???</div>\
@@ -472,10 +513,9 @@ var Submasters = (function(api, $) {
 			change: function( event, ui ) {
 				var val = $(this).slider( "value" );
 				$( '#value', $(this).closest('.sliderblock') ).text( val );
-				updateFader( $(this).data( 'fader' ), val );
 			}
 		});
-		
+
 		/* Special keyboard handling for slider handle */
 		$( '.subslider a.ui-slider-handle', $el ).on( "keyup", function( event ) {
 			var $sl = $(this).closest(".subslider");
@@ -507,8 +547,15 @@ var Submasters = (function(api, $) {
 				$sl.slider( "value", val );
 				event.preventDefault();
 			}
-			$sl.change();
+			updateFader( $sl.data( 'fader' ), $sl.slider( 'value' ) );
 		});
+
+		$( '.subslider', $el ).each( function() {
+			var fader = $(this).data( 'fader' );
+			var level = api.getDeviceState( fader, "urn:upnp-org:serviceId:Dimming1", "LoadLevelStatus" );
+			$(this).slider( "value", parseInt( level ) );
+		});
+
 
 		api.registerEventHandler('on_ui_deviceStatusChanged', Submasters, 'onUIDeviceStatusChanged');
 	}
