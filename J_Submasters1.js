@@ -17,9 +17,9 @@ var Submasters = (function(api, $) {
 	/* unique identifier for this plugin... */
 	var uuid = '30b20c8e-aa33-11e9-85e6-07d639dcca84'; /* Submasters 2019-07-19 */
 
-	var pluginVersion = '0.1develop-19200';
+	var pluginVersion = '0.1develop-19208';
 
-	var _UIVERSION = 19200;     /* must coincide with Lua core */
+	var _UIVERSION = 19208;     /* must coincide with Lua core */
 
 	var myModule = {};
 
