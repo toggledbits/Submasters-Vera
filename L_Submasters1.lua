@@ -2,43 +2,22 @@
 
 module("L_Submasters1", package.seeall) -- !!! Fix name
 
--- _PLUGIN_NAME: !!! Set this to the friendly name of your plugin
-
 _PLUGIN_NAME = "Submasters"	-- !!! Set me!
-
--- _PLUGIN_IDENT: !!! Set this to the short name of your plugin. Generally,
---                this should match the filenames of the plugin files, without
---                the prefix and suffix... L_Submasters1.lua ==> Submasters
-
 _PLUGIN_COMPACT = "Submasters"
-
--- _PLUGIN_REQUESTNAME: !!! Set this to name to be used in the "id" field of
---                      Luup requests for the plugin. Those requests would look
---                      like:
---                      http://vera-ip/port_3480/data_request?id=lr_Submasters
--- Default is same as compact, which is usually good and needs no changes.
+_PLUGIN_VERSION = "0.1develop-19208"
 _PLUGIN_REQUESTNAME = _PLUGIN_COMPACT
 
--- MYTYPE: The URN of your plugin's own device type. This must match exactly the
---         device type specified your device file (D_.xml)
-
 MYTYPE = "urn:schemas-toggledbits-com:device:Submasters:1"	-- !!! Set me!
-
--- MYSID: The URN of your plugin's own service. This must match the service
---        named in the device file (D_.xml)
 MYSID = "urn:toggledbits-com:serviceId:Submasters1"	-- !!! Set me!
 
 
 
 --[[ ======================================================================= ]]
 
--- !!! Declare your module-global data here, and require any other modules your
---     implementation may need.
-
 local Subs = {}
 local Loads = {}
 local Priority = "LTP"
-local _UIV = 19200 -- UI version
+local _UIV = 19208 -- UI version
 
 -- Load other modules/packages like this:
 local json = require "dkjson"
@@ -48,12 +27,9 @@ D = function( msg, ... ) PFB.log( PFB.LOGLEVEL.DEBUG1, msg, ... ) end
 L = function( msg, ... ) PFB.log( PFB.LOGLEVEL.NOTICE, msg, ... ) end
 
 
-
 --[[ ======================================================================= ]]
 
 --[[   P L U G I N   M O D U L E   I M P L E M E N T A T I O N   ------------]]
-
--- !!! Add your implementation functions HERE. Modify the others below as indicated.
 
 local function updateStatus( pdev )
 	D("updateStatus(%1)", pdev)
@@ -312,20 +288,3 @@ end
 
 --[[   P L U G I N   A C T I O N   I M P L E M E N T A T I O N   ------------]]
 
---[[
-	!!! Put your action implementation functions down here. These should be
-	    called from the implementation file's <action> tag for the action.
-		Remember to return appropriate values for the type of action execution.
-		<run> should return boolean true/false, <job> should return status
-		and timeout (0 if you're not sure what that means).
-		See http://wiki.micasaverde.com/index.php/Luup_Lua_extensions#function:_job_watch
---]]
-
--- Here's an example action implementation. It just does some nonsense thing
--- (sets the Message variable to whatever). Note that the function is
--- not "local", so it can be seen from I_Submasters1.xml
-function actionExample( pdev, parms )
-	D("actionExample(%1,%2)", pdev, parms)
-	-- Use: luup.call_action( "urn:yourdomain-name:serviceId:Submasters1", "Example", { newValue="23" }, n )
-	PFB.var.set( "Message", parms.newValue )
-end
