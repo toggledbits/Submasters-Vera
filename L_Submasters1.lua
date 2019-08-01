@@ -11,14 +11,12 @@ _PLUGIN_REQUESTNAME = _PLUGIN_COMPACT
 MYTYPE = "urn:schemas-toggledbits-com:device:Submasters:1"	-- !!! Set me!
 MYSID = "urn:toggledbits-com:serviceId:Submasters1"	-- !!! Set me!
 
-
-
 --[[ ======================================================================= ]]
 
 local Subs = {}
 local Loads = {}
 local Priority = "LTP"
-local _UIV = 19208 -- UI version
+local _UIV = 19213 -- UI version
 
 -- Load other modules/packages like this:
 local json = require "dkjson"
@@ -50,7 +48,7 @@ local function updateSubmaster( subIndex, pdev )
 		PFB.log('err', "Submaster %1:%2 fader device #%3 no longer exists!", sub.index, sub.id, sub.fader)
 		return
 	end
-	
+
 	-- Get current status of this sub's fader
 	local st = PFB.var.getNumeric( "Status", 0, sub.fader, "urn:upnp-org:serviceId:SwitchPower1" )
 	if st ~= 0 then
@@ -251,7 +249,7 @@ function start( pdev )
 
 	-- Load master config and set up internal structures.
 	reloadSubmasters( pdev )
-	
+
 	-- Watch for configuration changes
 	PFB.watch.set( pdev, MYSID, "Configuration", configChanged )
 
@@ -278,6 +276,30 @@ function handleRequest( request, parameters, outputformat, pdev )
 		-- or if we load the dkjson package and make it do the formatting of a Lua table:
 		-- local json = require "dkjson"
 		-- return json.encode( { text=parameters.text } ), "application/json"
+	elseif parameters.action == "checkupdate" then
+		local status,updater = pcall( require, "GitUpdater" )
+		if not status then
+			return json.encode( { status=false, message="GitUpdater is not installed" } ), "application/json"
+		end
+		local lastv = luup.variable_get( MYSID, "_GUV", pdev ) or ""
+		local update,rinfo = updater.checkForUpdate( "toggledbits", "Submasters-Vera", lastv~="" and lastv )
+		return json.encode( { status=true, update=update, info=rinfo } )
+	elseif parameters.action == "update" then
+		local status,updater = pcall( require, "GitUpdater" )
+		if not status then
+			return json.encode( { status=false, message="GitUpdater is not installed" } ), "application/json"
+		end
+		local lastv = luup.variable_get( MYSID, "_GUV", pdev ) or ""
+		local update,rinfo = updater.checkForUpdate( "toggledbits", "Submasters-Vera", lastv~="" and lastv )
+		if update then
+			local success,id = updater.doUpdate( rinfo )
+			if success then
+				luup.variable_set( MYSID, "_GUV", id, pdev )
+			else
+				return json.encode( { status=false, message="Update failed", detail=id } ), "application/json"
+			end
+		end
+		return json.encode( { status=true, update=update, info=rinfo } )
 	else
 		return "ERROR\r\nInvalid request", "text/plain"
 	end

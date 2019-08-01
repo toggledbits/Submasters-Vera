@@ -25,7 +25,7 @@ var Submasters = (function(api, $) {
 
 	var serviceId = "urn:toggledbits-com:serviceId:Submasters1";
 	var deviceType = "urn:schemas-toggledbits-com:device:Submasters:1";
-	
+
 	var DIMMERSID = "urn:upnp-org:serviceId:Dimming1";
 	var SWITCHSID = "urn:upnp-org:serviceId:SwitchPower1";
 
@@ -422,7 +422,7 @@ var Submasters = (function(api, $) {
  * S T A T U S
  *
  ** **************************************************************************/
- 
+
 	function _doStatus() {
 		console.log("_doStatus()");
 
@@ -449,6 +449,54 @@ var Submasters = (function(api, $) {
 		api.setCpanelContent( html );
 
 		var $container = $( 'div.tbsubmasters.substatus' );
+
+		/* Check for updates */
+		$.ajax({
+			url: api.getDataRequestURL(),
+			data: {
+				id: "lr_Submasters",
+				action: "checkupdate"
+			},
+			dataType: "json",
+			timeout: 5000
+		}).done( function( data ) {
+			if ( "object" === typeof( data ) && data.status ) {
+				if ( data.update ) {
+					$( '<div/>', { id: "updater" } )
+						.text("An update is available.")
+						.append( '<button class="btn btn-sm">Install Now</button>' )
+						.appendTo( $container );
+					$( 'div#updater button.btn', $container ).on( 'click', function() {
+						var $that = $(this);
+						$that.prop('disabled',true).text("Updating...");
+						$.ajax({
+							url: api.getDataRequestURL(),
+							data: {
+								id: "lr_Submasters",
+								action: "update"
+							},
+							dataType: "json",
+							timeout: 60000
+						}).done( function( r ) {
+							if ( typeof(r) === "object" && r.status ) {
+								$that.closest( 'div#updater' ).remove();
+								// ??? reload Luup
+							}
+							$that.prop('disabled',false).text("Retry Update");
+						}).fail( function() {
+							console.log("Update Failed");
+							$that.prop('disabled',false).text("Retry Update");
+						});
+					});
+				}
+			} else {
+				console.log("Invalid data: ");
+				console.log(data);
+			}
+		}).fail( function( jqXHR, textStatus, errorThrown ) {
+			console.log( "unable to request update info" );
+		});
+
 
 		var $el = $( '<div/>', { id: 'tbchannellist' } ).appendTo( $container );
 		var $row = $('<div/>', { class: "tbheadrow row" } ).appendTo( $el );
@@ -1124,7 +1172,7 @@ var Submasters = (function(api, $) {
 			},
 			change: function( event, ui ) { handleSlider($(this)); }
 		});
-		
+
 		/* Special keyboard handling for slider handle */
 		$( '.subslider a.ui-slider-handle', $body ).on( "keyup", function( event ) {
 			var $sl = $(this).closest(".subslider");
