@@ -4,6 +4,7 @@ module("L_Submasters1", package.seeall) -- !!! Fix name
 
 _PLUGIN_NAME = "Submasters"	-- !!! Set me!
 _PLUGIN_COMPACT = "Submasters"
+_PLUGIN_ID = 9261
 _PLUGIN_VERSION = "0.1develop-19208"
 _PLUGIN_REQUESTNAME = _PLUGIN_COMPACT
 
