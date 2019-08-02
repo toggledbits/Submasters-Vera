@@ -8,8 +8,8 @@ _PLUGIN_ID = 9261
 _PLUGIN_VERSION = "0.1develop-19213"
 _PLUGIN_REQUESTNAME = _PLUGIN_COMPACT
 
-MYTYPE = "urn:schemas-toggledbits-com:device:Submasters:1"	-- !!! Set me!
-MYSID = "urn:toggledbits-com:serviceId:Submasters1"	-- !!! Set me!
+MYTYPE = "urn:schemas-toggledbits-com:device:Submasters:1"
+MYSID = "urn:toggledbits-com:serviceId:Submasters1"
 
 --[[ ======================================================================= ]]
 
@@ -282,7 +282,7 @@ function handleRequest( request, parameters, outputformat, pdev )
 			return json.encode( { status=false, message="GitUpdater is not installed" } ), "application/json"
 		end
 		local lastv = luup.variable_get( MYSID, "_GUV", pdev ) or ""
-		local update,rinfo = updater.checkForUpdate( "toggledbits", "Submasters-Vera", lastv~="" and lastv )
+		local update,rinfo = updater.checkForUpdate( "toggledbits", "Submasters-Vera", lastv~="" and lastv, true )
 		return json.encode( { status=true, update=update, info=rinfo } )
 	elseif parameters.action == "update" then
 		local status,updater = pcall( require, "GitUpdater" )
@@ -290,7 +290,7 @@ function handleRequest( request, parameters, outputformat, pdev )
 			return json.encode( { status=false, message="GitUpdater is not installed" } ), "application/json"
 		end
 		local lastv = luup.variable_get( MYSID, "_GUV", pdev ) or ""
-		local update,rinfo = updater.checkForUpdate( "toggledbits", "Submasters-Vera", lastv~="" and lastv )
+		local update,rinfo = updater.checkForUpdate( "toggledbits", "Submasters-Vera", lastv~="" and lastv, true )
 		if update then
 			local success,id = updater.doUpdate( rinfo )
 			if success then
