@@ -12,7 +12,7 @@
 			"TabType": "flash",
 			"TopNavigationTab": 1,
 			"AfterInit": {
-				"ScriptName": "J_Submasters.js",
+				"ScriptName": "J_Submasters1.js",
 				"Function": "Submasters.doStatus"
 			},
 			"ControlGroup": [{

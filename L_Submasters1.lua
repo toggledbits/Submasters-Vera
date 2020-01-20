@@ -52,7 +52,7 @@ local function updateSubmaster( subIndex, pdev )
 	-- Get current status of this sub's fader
 	local st = PFB.var.getNumeric( "Status", 0, sub.fader, "urn:upnp-org:serviceId:SwitchPower1" )
 	if st ~= 0 then
-		st = PFB.var.getNumeric( "LoadLevelStatus", 0, sub.fader, "urn:upnp-org:serviceId:Dimming1" )
+		st = PFB.var.getNumeric( "LoadLevelStatus", 100, sub.fader, "urn:upnp-org:serviceId:Dimming1" )
 	end
 	sub.level = st
 	sub.since = os.time()
@@ -151,7 +151,7 @@ local function reloadSubmasters( pdev )
 
 	-- Make sure we're Enabled...
 	if PFB.var.getNumeric( "Enabled", 1 ) == 0 then
-		PFB.log( PFB.LOGLEVEL.notice, "Disabled by configuration." )
+		PFB.log( PFB.LOGLEVEL.WARN, "Disabled by configuration; startup aborting." )
 		PFB.var.set( "Message", "Disabled" )
 		return true, "Disabled"
 	end
@@ -282,7 +282,8 @@ function handleRequest( request, parameters, outputformat, pdev )
 			return json.encode( { status=false, message="GitUpdater is not installed" } ), "application/json"
 		end
 		local lastv = luup.variable_get( MYSID, "_GUV", pdev ) or ""
-		local update,rinfo = updater.checkForUpdate( "toggledbits", "Submasters-Vera", lastv~="" and lastv, true )
+		if lastv == "0" then lastv = "" end
+		local update,rinfo = updater.checkForUpdate( "toggledbits", "Submasters-Vera", lastv~="" and lastv, lastv=="" )
 		return json.encode( { status=true, update=update, info=rinfo } )
 	elseif parameters.action == "update" then
 		local status,updater = pcall( require, "GitUpdater" )
@@ -290,7 +291,8 @@ function handleRequest( request, parameters, outputformat, pdev )
 			return json.encode( { status=false, message="GitUpdater is not installed" } ), "application/json"
 		end
 		local lastv = luup.variable_get( MYSID, "_GUV", pdev ) or ""
-		local update,rinfo = updater.checkForUpdate( "toggledbits", "Submasters-Vera", lastv~="" and lastv, true )
+		if lastv == "0" then lastv = "" end
+		local update,rinfo = updater.checkForUpdate( "toggledbits", "Submasters-Vera", lastv~="" and lastv, lastv=="" )
 		if update then
 			local success,id = updater.doUpdate( rinfo )
 			if success then

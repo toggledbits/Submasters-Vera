@@ -463,8 +463,8 @@ var Submasters = (function(api, $) {
 			if ( "object" === typeof( data ) && data.status ) {
 				if ( data.update ) {
 					$( '<div/>', { id: "updater" } )
-						.text("An update is available.")
-						.append( '<button class="btn btn-sm">Install Now</button>' )
+						.text("An update is available (" + data.info.name + ". ")
+						.append( '<button class="btn btn-sm btn-success">Install Now</button>' )
 						.appendTo( $container );
 					$( 'div#updater button.btn', $container ).on( 'click', function() {
 						var $that = $(this);
@@ -479,8 +479,8 @@ var Submasters = (function(api, $) {
 							timeout: 60000
 						}).done( function( r ) {
 							if ( typeof(r) === "object" && r.status ) {
-								$that.closest( 'div#updater' ).remove();
-								// ??? reload Luup
+								$that.closest( 'div#updater' ).empty().text("UPDATE COMPLETED! RELOADING LUUP. Please hard-refresh your browser!");
+								api.performActionOnDevice( "urn:micasaverde-com:serviceId:HomeAutomationGateway1", "Reload", {}, 0 );
 							}
 							$that.prop('disabled',false).text("Retry Update");
 						}).fail( function() {

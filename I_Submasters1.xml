@@ -189,7 +189,7 @@
 			local run = {}
 			local now = os.time()
 			for _,v in pairs( pluginTimers ) do
-				if v.id ~= "master" and v.when &lt;= now then
+				if v.id ~= "master" and v.when and v.when &lt;= now then
 					table.insert( run, v.id )
 				end
 			end
@@ -312,6 +312,7 @@
 			end
 
 			-- Check firmware version
+			P("checking system version")
 			local vok,msg = pluginModule.checkVersion( dev )
 			if vok == false then
 				L('err', msg or "This plugin does not run on this firmware.")
@@ -322,6 +323,7 @@
 			-- Register plugin request handler
 			luup.register_handler("_RequestCb", pluginReqName)
 
+			P("calling module start")
 			local success,ret,msg = pcall( pluginModule.start, dev )
 			if not success then
 				L(logLevels.err, "Startup implementation failed: %1", ret)
@@ -454,11 +456,13 @@
 		pluginTimers = {}
 		pluginNextTID = 0
 		pluginMasterSerial = 0
-		pluginFlags = { debug=false }
+		pluginFlags = { debug=debugMode }
 		pluginName = pluginModule._PLUGIN_NAME
 		pluginIdent = pluginModule._PLUGIN_COMPACT or pluginModule._NAME:gsub("^L_", ""):gsub("1$", "")
 		pluginReqName = pluginModule._PLUGIN_REQUESTNAME or pluginIdent
 		pluginSID = pluginModule.MYSID or "urn:toggledbits-com:serviceId:Submasters1"
+
+		pluginModule.PFB = PFB
 
 		--[[ ===== D O   N O T   M O D I F Y   A B O V E   T H I S   L I N E --]]
 	</functions>
