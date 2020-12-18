@@ -17,9 +17,9 @@ var Submasters = (function(api, $) {
 	/* unique identifier for this plugin... */
 	var uuid = '30b20c8e-aa33-11e9-85e6-07d639dcca84'; /* Submasters 2019-07-19 */
 
-	var pluginVersion = '0.1develop-19213';
+	var pluginVersion = '0.1develop-20353';
 
-	var _UIVERSION = 19213;     /* must coincide with Lua core */
+	var _UIVERSION = 20353;     /* must coincide with Lua core */
 
 	var myModule = {};
 
@@ -462,7 +462,7 @@ var Submasters = (function(api, $) {
 		}).done( function( data ) {
 			if ( "object" === typeof( data ) && data.status ) {
 				if ( data.update ) {
-					$( '<div/>', { id: "updater" } )
+					$( '<div></div>', { id: "updater" } )
 						.text("An update is available (" + data.info.name + ". ")
 						.append( '<button class="btn btn-sm btn-success">Install Now</button>' )
 						.appendTo( $container );
@@ -498,26 +498,26 @@ var Submasters = (function(api, $) {
 		});
 
 
-		var $el = $( '<div/>', { id: 'tbchannellist' } ).appendTo( $container );
-		var $row = $('<div/>', { class: "tbheadrow row" } ).appendTo( $el );
-		$( '<div class="col-xs-1 col-sm-1"/>' ).text( "Dev#" ).appendTo( $row );
-		$( '<div class="col-xs-4 col-sm-4"/>' ).text( "Device Name" ).appendTo( $row );
-		$( '<div class="col-xs-1 col-sm-1"/>' ).text( "Level" ).appendTo( $row );
-		$( '<div class="col-xs-3 col-sm-3"/>' ).text( "Last Sub" ).appendTo( $row );
-		$( '<div class="col-xs-3 col-sm-3"/>' ).text( "-" ).appendTo( $row );
+		var $el = $( '<div></div>', { id: 'tbchannellist' } ).appendTo( $container );
+		var $row = $('<div></div>', { class: "tbheadrow row" } ).appendTo( $el );
+		$( '<div class="col-xs-1 col-sm-1"></div>' ).text( "Dev#" ).appendTo( $row );
+		$( '<div class="col-xs-4 col-sm-4"></div>' ).text( "Device Name" ).appendTo( $row );
+		$( '<div class="col-xs-1 col-sm-1"></div>' ).text( "Level" ).appendTo( $row );
+		$( '<div class="col-xs-3 col-sm-3"></div>' ).text( "Last Sub" ).appendTo( $row );
+		$( '<div class="col-xs-3 col-sm-3"></div>' ).text( "-" ).appendTo( $row );
 		for ( var il=0; il<dd.loads.length; ++il ) {
 			var load = dd.loads[il];
-			$row = $('<div/>', { id: load.device, class: "tbdevrow row" } )
+			$row = $('<div></div>', { id: load.device, class: "tbdevrow row" } )
 				.appendTo( $el );
-			$('<div class="col-xs-1 col-sm-1 tbcenter"/>').text( load.device ).appendTo( $row );
-			$('<div class="col-xs-4 col-sm-4"/>').text( load.name ).appendTo( $row );
-			$('<div id="lvl" class="col-xs-1 col-sm-1 tbcenter"/>').text( 'lvl' ).appendTo( $row );
-			$('<div id="sub" class="col-xs-3 col-sm-3 tbcenter"/>').text( 'sub' ).appendTo( $row );
-			$('<div id="qqq" class="col-xs-3 col-sm-3 tbcenter"/>').text( "-" ).appendTo( $row );
+			$('<div class="col-xs-1 col-sm-1 tbcenter"></div>').text( load.device ).appendTo( $row );
+			$('<div class="col-xs-4 col-sm-4"></div>').text( load.name ).appendTo( $row );
+			$('<div id="lvl" class="col-xs-1 col-sm-1 tbcenter"></div>').text( 'lvl' ).appendTo( $row );
+			$('<div id="sub" class="col-xs-3 col-sm-3 tbcenter"></div>').text( 'sub' ).appendTo( $row );
+			$('<div id="qqq" class="col-xs-3 col-sm-3 tbcenter"></div>').text( "-" ).appendTo( $row );
 		}
 
-		$el = $( '<div/>', { id: 'tbsublist' } ).appendTo( $container );
-		$( '<div class="clearfix"/>' ).appendTo( $container );
+		$el = $( '<div></div>', { id: 'tbsublist' } ).appendTo( $container );
+		$( '<div class="clearfix"></div>' ).appendTo( $container );
 
 		for ( var k=0; k<(cf.subs || []).length; k++ ) {
 			var sub = cf.subs[k];
@@ -795,17 +795,17 @@ var Submasters = (function(api, $) {
 							.text( r.name )
 							.appendTo( $mm );
 					}
-					$( '<option/>' ).val( d.id ).text( d.name ).appendTo( $group );
+					$( '<option></option>' ).val( d.id ).text( d.name ).appendTo( $group );
 				}
 			}
 		}
-		$('<option>').val("").text("(none)").prependTo( $mm );
+		$('<option></option>').val("").text("(none)").prependTo( $mm );
 		$mm.val("").appendTo( $dp );
-		$('<button>', { id: "assigndevice", class: "btn btn-sm btn-primary" } )
+		$('<button></button>', { id: "assigndevice", class: "btn btn-sm btn-primary" } )
 			.text("Assign Device")
 			.on( 'click', assignDevice )
 			.appendTo( $dp );
-		$('<button>', { id: "cancelassign", class: "btn btn-sm btn-default" } )
+		$('<button></button>', { id: "cancelassign", class: "btn btn-sm btn-default" } )
 			.text("Cancel")
 			.on( 'click', cancelAssign )
 			.appendTo( $dp );
@@ -904,7 +904,7 @@ var Submasters = (function(api, $) {
 
 		var $inf = $("#tbsminfo", $bd).empty().addClass("form-inline");
 		$( '<label id="lblsubname">Submaster: <input id="subname" type="text" class="form-control form-control-sm" title="Modify in place to edit name"></label>' ).appendTo( $inf );
-		$( '<label id="lblsubfade">Fader: <select id="faderselect" class="form-control" title="Select submaster fader device" /></label>' ).appendTo( $inf );
+		$( '<label id="lblsubfade">Fader: <select id="faderselect" class="form-control" title="Select submaster fader device"></select></label>' ).appendTo( $inf );
 		$( 'input#subname', $inf ).val(sub.id).on( 'change', function() {
 			var newname = $(this).val() || "";
 			var sub = getCurrentSub();
@@ -936,14 +936,15 @@ var Submasters = (function(api, $) {
 							.text( r.name )
 							.appendTo( $mm );
 					}
-					$( '<option/>' ).val( d.id ).text( d.name ).appendTo( $group );
+					$( '<option></option>' ).val( d.id ).text( d.name ).appendTo( $group );
 				}
 			}
 		}
+		$('<option>').val("").text("(create new virtual)").val("+").prependTo( $mm );
 		$('<option>').val("").text("(none)").prependTo( $mm );
 		var opt = $('option[value="'+(sub.fader||"")+'"]', $mm);
 		if ( 0 === opt.length ) {
-			$('<option/>').val( sub.fader )
+			$('<option></option>').val( sub.fader )
 				.text( '(missing device #'+String(sub.fader)+')' )
 				.prependTo( $mm );
 		}
@@ -1044,7 +1045,7 @@ var Submasters = (function(api, $) {
 	}
 
 	function insertSubmasterTab( ix, sub ) {
-		var $tab = jQuery( '<li/>', { id: sub.__index, class: "tbtab" } )
+		var $tab = jQuery( '<li></li>', { id: sub.__index, class: "tbtab" } )
 			.text( sub.id )
 			.on( 'click', handleTabClick);
 		$('<i class="tabdelete material-icons md16">clear</i>')
@@ -1104,14 +1105,14 @@ var Submasters = (function(api, $) {
 
 		var $container = $( 'div.submastertab' );
 		jQuery( '<script language="javascript">\
-!function(t,e,i,l){t.widget("toggledbits.channelbutton",{options:{label:"",value:"",width:null,height:null,click:null,clickLabel:null,clickBase:null},_create:function(){this.element.addClass("channelbutton"),this.element.append(\'<div class="channelbutton-label">  <div class="channelbutton-label-slot"/>  <div class="channelbutton-label-text"/></div><div class="channelbutton-base">  <div class="channelbutton-base-slot"/>  <div class="channelbutton-value-text"/></div>\');var e=this;t("div.channelbutton-label",this.element).on("click",function(t,i){e.options.clickLabel&&e._clickLabel(t,e.element)}),t("div.channelbutton-base",this.element).on("click",function(t,i){e.options.clickLabel&&e._clickBase(t,e.element)}),this._refresh()},_refresh:function(){this.element.css("width",this.options.width||this.element.outerWidth),this.element.css("height",this.options.height||this.element.outerHeight),t("div.channelbutton-label-text",this.element).text(this.options.label).prop("disabled",!0),t("div.channelbutton-value-text",this.element).text(this.options.value).prop("disabled",!0)},_destroy:function(){},_clickLabel:function(e,i){$clicked=t(e.currentTarget),$clicked.hasClass("disabled")||$clicked.closest(".channelbutton").hasClass("disabled")||(this.options.clickLabel?this.options.clickLabel(e,i):this.options.click&&this._trigger("click",e,i))},_clickBase:function(e,i){$clicked=t(e.currentTarget),$clicked.hasClass("disabled")||$clicked.closest(".channelbutton").hasClass("disabled")||(this.options.clickBase?this.options.clickBase(e,i):this.options.click&&this._trigger("click",e,i))},_setOption:function(t,e){this.options[t]=e,this._super("_setOption",t,e),this._refresh()}})}(jQuery,window,document);\
+!function(t,e,i,l){t.widget("toggledbits.channelbutton",{options:{label:"",value:"",width:null,height:null,click:null,clickLabel:null,clickBase:null},_create:function(){this.element.addClass("channelbutton"),this.element.append(\'<div class="channelbutton-label">  <div class="channelbutton-label-slot"></div>  <div class="channelbutton-label-text"></div></div><div class="channelbutton-base">  <div class="channelbutton-base-slot"></div>  <div class="channelbutton-value-text"></div></div>\');var e=this;t("div.channelbutton-label",this.element).on("click",function(t,i){e.options.clickLabel&&e._clickLabel(t,e.element)}),t("div.channelbutton-base",this.element).on("click",function(t,i){e.options.clickLabel&&e._clickBase(t,e.element)}),this._refresh()},_refresh:function(){this.element.css("width",this.options.width||this.element.outerWidth),this.element.css("height",this.options.height||this.element.outerHeight),t("div.channelbutton-label-text",this.element).text(this.options.label).prop("disabled",!0),t("div.channelbutton-value-text",this.element).text(this.options.value).prop("disabled",!0)},_destroy:function(){},_clickLabel:function(e,i){$clicked=t(e.currentTarget),$clicked.hasClass("disabled")||$clicked.closest(".channelbutton").hasClass("disabled")||(this.options.clickLabel?this.options.clickLabel(e,i):this.options.click&&this._trigger("click",e,i))},_clickBase:function(e,i){$clicked=t(e.currentTarget),$clicked.hasClass("disabled")||$clicked.closest(".channelbutton").hasClass("disabled")||(this.options.clickBase?this.options.clickBase(e,i):this.options.click&&this._trigger("click",e,i))},_setOption:function(t,e){this.options[t]=e,this._super("_setOption",t,e),this._refresh()}})}(jQuery,window,document);\
 </script>' ).appendTo( $container );
 
-		var $th = jQuery( '<div/>', { id: "tbtabs" } ).appendTo( $container );
-		jQuery( '<div style="float: none; clear: both"/>' ).appendTo( $container );
+		var $th = jQuery( '<div></div>', { id: "tbtabs" } ).appendTo( $container );
+		jQuery( '<div style="float: none; clear: both"></div>' ).appendTo( $container );
 
-		var $body = jQuery( '<div/>', { id: "tbtabbody" } );
-		jQuery( '<div/>', { id: "tbsminfo" } ).appendTo( $body );
+		var $body = jQuery( '<div></div>', { id: "tbtabbody" } );
+		jQuery( '<div></div>', { id: "tbsminfo" } ).appendTo( $body );
 
 		$body.append( '\
 <div class="sliderblock"><img src="http://www.toggledbits.com/assets/submasters/slider-top.png"><div class="subslider" data-fader=""></div><img src="http://www.toggledbits.com/assets/submasters/slider-bottom.png"><div id="value">0</div></div>\
@@ -1148,7 +1149,7 @@ var Submasters = (function(api, $) {
 	</div>\
 </div>');
 		$body.append( '<div id="status"></div>' );
-		jQuery( '<div id="dpanel"/>' ).hide().appendTo( $body );
+		jQuery( '<div id="dpanel"></div>' ).hide().appendTo( $body );
 
 		$( ".subslider", $body ).slider({
 			orientation: "vertical",
@@ -1232,7 +1233,7 @@ var Submasters = (function(api, $) {
 		$container.append( $body );
 
 		var config = getConfiguration();
-		$th.append( '<ul/>' );
+		$th.append( '<ul></ul>' );
 		$( '<li id="add"><i class="material-icons">add_circle_outline</i></li>' )
 			.attr('title', 'Click to add submaster')
 			.on( 'click', addSubmaster )

@@ -5,7 +5,7 @@ module("L_Submasters1", package.seeall) -- !!! Fix name
 _PLUGIN_NAME = "Submasters"	-- !!! Set me!
 _PLUGIN_COMPACT = "Submasters"
 _PLUGIN_ID = 9261
-_PLUGIN_VERSION = "0.1develop-19213"
+_PLUGIN_VERSION = "0.1develop-20353"
 _PLUGIN_REQUESTNAME = _PLUGIN_COMPACT
 
 MYTYPE = "urn:schemas-toggledbits-com:device:Submasters:1"
@@ -16,7 +16,7 @@ MYSID = "urn:toggledbits-com:serviceId:Submasters1"
 local Subs = {}
 local Loads = {}
 local Priority = "LTP"
-local _UIV = 19213 -- UI version
+local _UIV = 20353 -- UI version
 
 -- Load other modules/packages like this:
 local json = require "dkjson"
